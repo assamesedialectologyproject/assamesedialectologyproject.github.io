@@ -140,6 +140,44 @@ footer{border-top:1px solid var(--line);padding:25px 20px;text-align:center;font
 @media(max-width:800px){.acknowledgement-gallery{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}}
 @media(max-width:500px){.acknowledgement-gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.acknowledgement-intro{margin-bottom:24px}}
 @media(prefers-reduced-motion:reduce){.ack-photo img{transition:none}}
+
+/* Responsive typography across the entire website */
+body{font-size:clamp(13px,1.2vw,16px);line-height:1.7}
+[role=tab]{font-size:clamp(11px,1.1vw,14px)}
+.content{font-size:clamp(13px,1.3vw,16px)}
+.home-layout h3{font-size:clamp(16px,1.7vw,19px)}
+.update-date{font-size:clamp(10px,.9vw,12px)}
+.update-title{font-size:clamp(13px,1.2vw,15px)}
+.update-description{font-size:clamp(12px,1.1vw,14px)}
+.slide-art strong{font-size:clamp(15px,1.5vw,17px)}
+.slide-art span{font-size:clamp(11px,1vw,13px)}
+.slider-caption{font-size:clamp(11px,1.1vw,14px)}
+.quiz-meta,.audio-status,.listen-copy strong,.quiz-options legend{font-size:clamp(11px,1vw,13px)}
+.listen-copy span,.player-times{font-size:clamp(10px,.9vw,12px)}
+.quiz-choice{font-size:clamp(12px,1.15vw,14px)}
+.quiz-feedback{font-size:clamp(12px,1.2vw,15px)}
+.quiz-btn{font-size:clamp(12px,1.1vw,14px)}
+#quiz-finish h3{font-size:clamp(18px,2vw,22px)}
+#quiz-finish p{font-size:clamp(13px,1.3vw,16px)}
+.sample-intro{font-size:clamp(12px,1.2vw,15px)!important}
+.map-source,.map-visual span{font-size:clamp(11px,1.1vw,14px)}
+.corpus-image-placeholder{font-size:clamp(12px,1.1vw,14px)}
+.publication-year{font-size:clamp(11px,1vw,13px)}
+.publication-venue,.publication-entry a{font-size:clamp(12px,1.1vw,14px)}
+.presentation-empty{font-size:clamp(11px,1vw,13px)}
+.research-photo-column h3{font-size:clamp(16px,1.7vw,19px)}
+.contact-details{font-size:clamp(13px,1.3vw,16px)}
+.contact-details h3{font-size:clamp(18px,2vw,24px)}
+.contact-details a{overflow-wrap:anywhere}
+.ack-photo{font-size:clamp(10px,1vw,12px)}
+footer{font-size:clamp(11px,1vw,13px)}
+@media(max-width:480px){
+  main{padding:35px 16px 65px}
+  [role=tab]{padding:12px 11px}
+  .quiz-shell{padding:15px}
+  .research-layout,.home-layout{gap:24px}
+  .publication-entry{padding-bottom:14px}
+}
 </style>
 </head>
 <body>
