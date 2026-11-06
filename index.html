@@ -469,7 +469,7 @@ footer{font-size:clamp(11px,1vw,13px)}
    stopRotation();
    if(!isHomepageSlider||slides.length<2||isHovered||document.hidden)return;
    if(slider.closest('[role="tabpanel"]')?.hidden)return;
-   rotationTimer=setInterval(()=>showSlide(currentSlide+1),1000);
+   rotationTimer=setInterval(()=>showSlide(currentSlide+1),4000);
   }
   slider.querySelector('.prev')?.addEventListener('click',()=>{
    showSlide(currentSlide-1);startRotation();
