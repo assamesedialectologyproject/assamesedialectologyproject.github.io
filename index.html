@@ -213,40 +213,41 @@ footer{font-size:clamp(11px,1vw,13px)}
   <div class="slide is-active"
        aria-hidden="false"
        data-caption="Poster presentation @Interspeech'26 with co-author Rosey Billington">
-    <img src="images/image1.png">
+    <img src="images/image1.png" alt="Poster presentation at Interspeech 2026 with Rosey Billington">
   </div>
 
   <!-- Second slide -->
-  <div class="slide is-active"
-       aria-hidden="false"
+  <div class="slide"
+       aria-hidden="true"
        data-caption="Receiving Best Student Oral Presentation Award @NWAV-AP8, NTU, Singapore">
-    <img src="images/image2.png">
+    <img src="images/image2.png" alt="Best Student Oral Presentation Award at NWAV-AP8 in Singapore">
   </div>
 
   <!-- Third slide -->
-  <div class="slide is-active"
-       aria-hidden="false"
+  <div class="slide"
+       aria-hidden="true"
        data-caption="Friday Seminar @University of Melbourne">
-    <img src="images/image3.png">
+    <img src="images/image3.png" alt="Friday Seminar at the University of Melbourne">
   </div>
   
-        <!-- Third slide -->
-  <div class="slide is-active"
-       aria-hidden="false"
+        <!-- Fourth slide -->
+  <div class="slide"
+       aria-hidden="true"
        data-caption="Fieldwork in Bihaguri, Tezpur, Assam">
-    <img src="images/image4.png">
+    <img src="images/image4.png" alt="Fieldwork in Bihaguri, Tezpur, Assam">
   </div>
 
 </div>
 
         <button class="slider-arrow prev" type="button" aria-label="Previous image">&#8249;</button>
         <button class="slider-arrow next" type="button" aria-label="Next image">&#8250;</button>
-        <div class="slider-caption" aria-live="polite"></div>
+        <div class="slider-caption" aria-live="polite">Poster presentation @Interspeech'26 with co-author Rosey Billington</div>
       </div>
       <div class="slider-dots" aria-label="Select slide">
         <button class="slider-dot" type="button" aria-label="Show slide 1" aria-current="true"></button>
         <button class="slider-dot" type="button" aria-label="Show slide 2" aria-current="false"></button>
         <button class="slider-dot" type="button" aria-label="Show slide 3" aria-current="false"></button>
+        <button class="slider-dot" type="button" aria-label="Show slide 4" aria-current="false"></button>
       </div>
     </div>
   </div>
@@ -454,9 +455,41 @@ footer{font-size:clamp(11px,1vw,13px)}
    dots.forEach((dot,i)=>dot.setAttribute('aria-current',String(i===currentSlide)));
    if(caption)caption.textContent=slides[currentSlide].dataset.caption||'';
   }
-  slider.querySelector('.prev')?.addEventListener('click',()=>showSlide(currentSlide-1));
-  slider.querySelector('.next')?.addEventListener('click',()=>showSlide(currentSlide+1));
-  dots.forEach((dot,i)=>dot.addEventListener('click',()=>showSlide(i)));
+  // Set the correct image and caption immediately when the page loads.
+  showSlide(0);
+
+  // Only the homepage gallery rotates automatically; the research gallery stays manual.
+  const isHomepageSlider=!!slider.closest('#panel-home');
+  let rotationTimer=null;
+  let isHovered=false;
+  function stopRotation(){
+   if(rotationTimer!==null){clearInterval(rotationTimer);rotationTimer=null;}
+  }
+  function startRotation(){
+   stopRotation();
+   if(!isHomepageSlider||slides.length<2||isHovered||document.hidden)return;
+   if(slider.closest('[role="tabpanel"]')?.hidden)return;
+   rotationTimer=setInterval(()=>showSlide(currentSlide+1),1000);
+  }
+  slider.querySelector('.prev')?.addEventListener('click',()=>{
+   showSlide(currentSlide-1);startRotation();
+  });
+  slider.querySelector('.next')?.addEventListener('click',()=>{
+   showSlide(currentSlide+1);startRotation();
+  });
+  dots.forEach((dot,i)=>dot.addEventListener('click',()=>{
+   showSlide(i);startRotation();
+  }));
+  if(isHomepageSlider){
+   slider.addEventListener('mouseenter',()=>{isHovered=true;stopRotation();});
+   slider.addEventListener('mouseleave',()=>{isHovered=false;startRotation();});
+   slider.addEventListener('focusin',stopRotation);
+   slider.addEventListener('focusout',()=>{if(!slider.contains(document.activeElement))startRotation();});
+   document.addEventListener('visibilitychange',startRotation);
+   document.querySelectorAll('[role="tab"]').forEach(tab=>tab.addEventListener('click',startRotation));
+   window.addEventListener('hashchange',startRotation);
+   startRotation();
+  }
  });
 
 
