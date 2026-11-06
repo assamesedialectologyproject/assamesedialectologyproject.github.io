@@ -72,6 +72,7 @@ footer{border-top:1px solid var(--line);padding:25px 20px;text-align:center;font
 #waveform{display:block;width:100%;height:86px}
 .player-times{display:flex;justify-content:space-between;color:#666;font-size:11px;font-variant-numeric:tabular-nums}
 .audio-status{font-size:12px;color:#666;margin:12px 0 0;line-height:1.6}
+.audio-status:empty {display: none;}
 .quiz-options{border:0;margin:0 0 20px;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
 .quiz-options legend{font-size:13px;font-weight:600;margin-bottom:14px}
 .quiz-choice{border:1px solid #d8d8d8;padding:15px;display:flex;align-items:center;gap:12px;cursor:pointer;font-size:13px;font-weight:500;min-height:56px;line-height:1.4}
@@ -660,7 +661,7 @@ main > [role="tabpanel"]{width:100%;max-width:1000px;margin-left:auto;margin-rig
    playBtn.disabled=false;playBtn.textContent='▶ Play';
    playBtn.setAttribute('aria-label','Play recording');
    waveArea.classList.add('is-ready');waveArea.tabIndex=0;
-   audioStatus.textContent=`Loaded ${usedPath.endsWith('.wav')?'WAV':'MP3'}. Waveform shown at 300% vertical magnification.`;
+   audioStatus.textContent = '';
    try{await player.play();}
    catch(e){audioStatus.textContent='Audio loaded. Press Play to listen.';}
   }catch(e){
