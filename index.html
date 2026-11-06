@@ -207,18 +207,38 @@ footer{font-size:clamp(11px,1vw,13px)}
     <div class="gallery-column">
       <h3>Project Gallery</h3>
       <div class="slider-shell" role="region" aria-label="Project image slider" aria-roledescription="carousel">
-        <div class="slides">
-          <!-- TO ADD PHOTOS: replace each .slide-art block with <img src="images/photo1.jpg" alt="Description">. -->
-          <div class="slide is-active" aria-hidden="false" data-caption="Fieldwork photographs">
-            <div class="slide-art"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><strong>Fieldwork photographs</strong><span>Add a fieldwork image here</span></div>
-          </div>
-          <div class="slide" aria-hidden="true" data-caption="Dialect maps">
-            <div class="slide-art"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15m6-12v15"/></svg><strong>Dialect maps</strong><span>Add a dialect map image here</span></div>
-          </div>
-          <div class="slide" aria-hidden="true" data-caption="Corpus and research">
-            <div class="slide-art"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5m-4 0h8"/></svg><strong>Corpus and research</strong><span>Add an image from your recordings or research</span></div>
-          </div>
-        </div>
+        
+<div class="slides">
+
+  <!-- First image -->
+  <div class="slide is-active"
+       aria-hidden="false"
+       data-caption="Fieldwork photographs">
+    <img src="images/image1.png" alt="Fieldwork photographs">
+  </div>
+
+  <!-- Second slide -->
+  <div class="slide"
+       aria-hidden="true"
+       data-caption="Dialect maps">
+    <div class="slide-art">
+      <strong>Dialect maps</strong>
+      <span>Add a dialect map image here</span>
+    </div>
+  </div>
+
+  <!-- Third slide -->
+  <div class="slide"
+       aria-hidden="true"
+       data-caption="Corpus and research">
+    <div class="slide-art">
+      <strong>Corpus and research</strong>
+      <span>Add an image here</span>
+    </div>
+  </div>
+
+</div>
+
         <button class="slider-arrow prev" type="button" aria-label="Previous image">&#8249;</button>
         <button class="slider-arrow next" type="button" aria-label="Next image">&#8250;</button>
         <div class="slider-caption" aria-live="polite">Fieldwork photographs</div>
