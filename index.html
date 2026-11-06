@@ -185,6 +185,24 @@ footer{font-size:clamp(11px,1vw,13px)}
 .play-toggle:disabled{opacity:.55}
 #waveform{height:100px}
 @media(max-width:600px){.player-row{align-items:center}.play-toggle{min-width:100px;padding:0 9px}#waveform{height:80px}}
+
+/* Consistent horizontal centering for every page/panel. */
+main{width:100%;margin-left:auto;margin-right:auto}
+main > [role="tabpanel"]{width:100%;max-width:1000px;margin-left:auto;margin-right:auto;min-width:0}
+#panel-home{max-width:1120px}
+.quiz-shell,.maps-list,.corpus-section,.research-layout,
+.acknowledgement-section,.contact-details{
+  width:100%;margin-left:auto;margin-right:auto;min-width:0;
+}
+.quiz-shell{max-width:840px}
+.maps-list{max-width:960px}
+.corpus-section{max-width:900px}
+.research-layout{max-width:1000px}
+.acknowledgement-section{max-width:980px}
+.contact-details{max-width:900px}
+@media(max-width:750px){
+  main > [role="tabpanel"]{max-width:100%}
+}
 </style>
 </head>
 <body>
