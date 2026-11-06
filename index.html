@@ -178,6 +178,13 @@ footer{font-size:clamp(11px,1vw,13px)}
   .research-layout,.home-layout{gap:24px}
   .publication-entry{padding-bottom:14px}
 }
+/* On-demand audio: only show measured waveform peaks after loading. */
+.waveform-area{cursor:default}
+.waveform-area.is-ready{cursor:pointer}
+.play-toggle{width:auto;min-width:116px;height:48px;border-radius:4px;padding:0 14px;font:600 clamp(12px,1.1vw,14px) Poppins,Arial,sans-serif}
+.play-toggle:disabled{opacity:.55}
+#waveform{height:100px}
+@media(max-width:600px){.player-row{align-items:center}.play-toggle{min-width:100px;padding:0 9px}#waveform{height:80px}}
 </style>
 </head>
 <body>
@@ -262,14 +269,14 @@ footer{font-size:clamp(11px,1vw,13px)}
       <div class="listen-box">
         <div class="listen-copy"><strong>VOICE SAMPLE <span id="sample-number">01</span></strong><span>Listen as many times as you like</span></div>
         <div class="player-row">
-          <button type="button" id="play-toggle" class="play-toggle" aria-label="Play recording" disabled>▶</button>
-          <div class="waveform-area" id="waveform-area" role="slider" tabindex="0" aria-label="Audio position" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <button type="button" id="play-toggle" class="play-toggle" aria-label="Load and play recording">Load &amp; Play</button>
+          <div class="waveform-area" id="waveform-area" role="slider" tabindex="-1" aria-label="Audio position" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
             <canvas id="waveform" height="90" aria-hidden="true"></canvas>
             <div class="player-times"><span id="time-now">0:00</span><span id="time-end">0:00</span></div>
           </div>
         </div>
-        <p class="audio-status" id="audio-status" role="status">Looking for the audio file…</p>
-        <audio id="quiz-audio" preload="auto"></audio>
+        <p class="audio-status" id="audio-status" role="status">Audio is not loaded. Select Load & Play to begin.</p>
+        <audio id="quiz-audio" preload="none"></audio>
       </div>
       <fieldset class="quiz-options" id="quiz-options"><legend>Choose one location</legend></fieldset>
       <div id="quiz-feedback" class="quiz-feedback" role="status" aria-live="polite" hidden></div>
@@ -527,16 +534,16 @@ footer{font-size:clamp(11px,1vw,13px)}
  document.getElementById('ack-close').addEventListener('click',()=>acknowledgementDialog.close());
  acknowledgementDialog.addEventListener('click',e=>{if(e.target===acknowledgementDialog)acknowledgementDialog.close()});
 
- // EDIT AUDIO HERE: upload these MP3 files to an "audio" folder beside this HTML file.
- // On GitHub Pages the paths work automatically, e.g. /audio/barpeta.mp3 relative to your site.
+ // AUDIO: each entry is a basename inside audio/; .mp3 and .wav are supported.
+ // Example: audio/barpeta.mp3 OR audio/barpeta.wav (MP3 is tried first).
  const quizTracks=[
-  {name:'Barpeta',file:'audio/barpeta.mp3'},
-  {name:'Bongaigaon',file:'audio/bongaigaon.mp3'},
-  {name:'Sibsagar',file:'audio/sibsagar.mp3'},
-  {name:'Jorhat',file:'audio/jorhat.mp3'},
-  {name:'Dibrugarh',file:'audio/dibrugarh.mp3'},
-  {name:'Sonitpur (Tezpur)',file:'audio/sonitpur-tezpur.mp3'},
-  {name:'Dhemaji',file:'audio/dhemaji.mp3'}
+  {name:'Barpeta',base:'audio/barpeta'},
+  {name:'Bongaigaon',base:'audio/bongaigaon'},
+  {name:'Sibsagar',base:'audio/sibsagar'},
+  {name:'Jorhat',base:'audio/jorhat'},
+  {name:'Dibrugarh',base:'audio/dibrugarh'},
+  {name:'Sonitpur (Tezpur)',base:'audio/sonitpur-tezpur'},
+  {name:'Dhemaji',base:'audio/dhemaji'}
  ];
  const options=document.getElementById('quiz-options');
  const progress=document.getElementById('quiz-progress');
@@ -555,45 +562,96 @@ footer{font-size:clamp(11px,1vw,13px)}
  const nextBtn=document.getElementById('quiz-next');
  const quizRound=document.getElementById('quiz-round');
  const quizFinish=document.getElementById('quiz-finish');
- let quizOrder=[],roundIndex=0,correctCount=0,submitted=false,wavePeaks=null,loadId=0;
+ let quizOrder=[],roundIndex=0,correctCount=0,submitted=false;
+ let wavePeaks=null,loadId=0,fetchController=null,objectUrl=null,loading=false;
+ const WAVE_DISPLAY_GAIN=3; // 300% vertical waveform magnification, BOTH MP3 AND WAV. Does not change audio volume.
  function shuffle(items){for(let i=items.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[items[i],items[j]]=[items[j],items[i]]}return items}
  const fmtTime=t=>Number.isFinite(t)?`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`:'0:00';
  function drawWave(){
   if(!ctx)return;
-  const rect=canvas.getBoundingClientRect();const dpr=Math.min(window.devicePixelRatio||1,2);
-  const w=Math.max(1,Math.round(rect.width*dpr)),h=Math.round(rect.height*dpr);
+  const rect=canvas.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,2);
+  const w=Math.max(1,Math.round(rect.width*dpr)),h=Math.max(1,Math.round(rect.height*dpr));
   if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}
   ctx.clearRect(0,0,w,h);
+  // Intentionally draw NOTHING until real audio samples have been decoded.
+  if(!wavePeaks){waveArea.setAttribute('aria-valuenow','0');return;}
   const count=Math.max(30,Math.floor(w/4)),step=w/count;
-  const pct=player.duration?Math.min(1,player.currentTime/player.duration):0;
+  const pct=Number.isFinite(player.duration)&&player.duration>0 ? Math.min(1,player.currentTime/player.duration):0;
   for(let i=0;i<count;i++){
-   // Decorative fallback until the MP3 has decoded; real audio peaks replace these.
-   const a=wavePeaks?wavePeaks[Math.min(wavePeaks.length-1,Math.floor(i*wavePeaks.length/count))]:0.18+0.6*Math.abs(Math.sin(i*.65)*Math.cos(i*.17));
-   const barH=Math.max(3,a*h*.83);ctx.fillStyle=(i/count)<=pct?'#111':'#bdbdbd';
-   ctx.fillRect(i*step+(step-2)/2,(h-barH)/2,Math.max(1.5,step-1.8),barH);
+   const peak=wavePeaks[Math.min(wavePeaks.length-1,Math.floor(i*wavePeaks.length/count))];
+   const barH=Math.min(h,peak*WAVE_DISPLAY_GAIN*h);
+   ctx.fillStyle=(i/count)<=pct?'#111':'#bdbdbd';
+   if(barH>0)ctx.fillRect(i*step+(step-2)/2,(h-barH)/2,Math.max(1.5,step-1.8),barH);
   }
   waveArea.setAttribute('aria-valuenow',String(Math.round(pct*100)));
  }
- async function loadWave(file,token){
+ async function peaksFromBytes(bytes,token){
+  const AudioContextCtor=window.AudioContext||window.webkitAudioContext;
+  if(!AudioContextCtor)throw Error('Audio decoding is not supported in this browser.');
+  const audioContext=new AudioContextCtor();
   try{
-   const response=await fetch(file);if(!response.ok)throw Error('not found');
-   const bytes=await response.arrayBuffer();if(token!==loadId)return;
-   const AudioContextCtor=window.AudioContext||window.webkitAudioContext;
-   if(!AudioContextCtor)return;
-   const audioContext=new AudioContextCtor();
-   try{
-    const buffer=await audioContext.decodeAudioData(bytes);
-    if(token!==loadId)return;
-    const data=buffer.getChannelData(0),n=280,block=Math.max(1,Math.floor(data.length/n));
-    wavePeaks=Array.from({length:n},(_,i)=>{
-     let max=0;const offset=i*block;
-     for(let j=0;j<block;j+=Math.max(1,Math.floor(block/120)))max=Math.max(max,Math.abs(data[offset+j]||0));
-     return Math.max(.08,Math.min(1,max*2.2));
-    });drawWave();
-   }finally{await audioContext.close()}
-  }catch(e){ /* The native audio element reports failed loading; decorative waveform stays visible. */ }
+   const buffer=await audioContext.decodeAudioData(bytes.slice(0));
+   if(token!==loadId)return null;
+   const n=600,channels=Array.from({length:buffer.numberOfChannels},(_,i)=>buffer.getChannelData(i));
+   const block=Math.max(1,Math.ceil(buffer.length/n));
+   return Array.from({length:n},(_,i)=>{
+    let peak=0,start=i*block,end=Math.min(buffer.length,start+block);
+    // Representative sampled peak from EACH audio channel, without a fabricated minimum.
+    const stride=Math.max(1,Math.floor((end-start)/120));
+    for(let j=start;j<end;j+=stride){for(const channel of channels)peak=Math.max(peak,Math.abs(channel[j]||0));}
+    return peak;
+   });
+  }finally{await audioContext.close()}
  }
- function stopAudio(){player.pause();player.removeAttribute('src');player.load();wavePeaks=null;loadId++;playBtn.textContent='▶';playBtn.setAttribute('aria-label','Play recording');playBtn.disabled=true;currentTimeLabel.textContent='0:00';durationLabel.textContent='0:00'}
+ function stopAudio(){
+  loadId++;
+  if(fetchController){fetchController.abort();fetchController=null;}
+  player.pause();player.removeAttribute('src');player.load();
+  if(objectUrl){URL.revokeObjectURL(objectUrl);objectUrl=null;}
+  wavePeaks=null;loading=false;
+  playBtn.disabled=false;playBtn.textContent='Load & Play';playBtn.setAttribute('aria-label','Load and play recording');
+  waveArea.classList.remove('is-ready');waveArea.tabIndex=-1;
+  currentTimeLabel.textContent='0:00';durationLabel.textContent='0:00';drawWave();
+ }
+ async function loadAndPlay(){
+  if(loading)return;
+  const token=++loadId,track=quizOrder[roundIndex];
+  loading=true;playBtn.disabled=true;playBtn.textContent='Loading…';
+  audioStatus.textContent='Loading audio only now…';
+  fetchController=new AbortController();
+  try{
+   let blob=null,usedPath='';
+   for(const ext of ['mp3','wav']){
+    const path=`${track.base}.${ext}`;
+    try{
+     const response=await fetch(path,{signal:fetchController.signal});
+     if(!response.ok)continue;
+     blob=await response.blob();usedPath=path;break;
+    }catch(e){if(fetchController.signal.aborted)throw e;}
+   }
+   if(token!==loadId)return;
+   if(!blob)throw Error('Recording unavailable.');
+   // One on-demand download is reused for playback AND measuring the waveform.
+   const bytes=await blob.arrayBuffer();
+   if(token!==loadId)return;
+   wavePeaks=await peaksFromBytes(bytes,token);
+   if(token!==loadId)return;
+   drawWave();
+   objectUrl=URL.createObjectURL(blob);
+   player.src=objectUrl;player.load();
+   playBtn.disabled=false;playBtn.textContent='▶ Play';
+   playBtn.setAttribute('aria-label','Play recording');
+   waveArea.classList.add('is-ready');waveArea.tabIndex=0;
+   audioStatus.textContent=`Loaded ${usedPath.endsWith('.wav')?'WAV':'MP3'}. Waveform shown at 300% vertical magnification.`;
+   try{await player.play();}
+   catch(e){audioStatus.textContent='Audio loaded. Press Play to listen.';}
+  }catch(e){
+   if(token!==loadId)return;
+   playBtn.disabled=false;playBtn.textContent='Retry Load';
+   audioStatus.textContent=e.name==='AbortError'?'Loading cancelled.':(e.message||'Unable to load audio.');
+   wavePeaks=null;drawWave();
+  }finally{if(token===loadId){loading=false;fetchController=null;}}
+ }
  function renderRound(){
   stopAudio();const track=quizOrder[roundIndex];submitted=false;
   progress.textContent=`Recording ${roundIndex+1} of ${quizOrder.length}`;
@@ -611,22 +669,23 @@ footer{font-size:clamp(11px,1vw,13px)}
    const span=document.createElement('span');span.textContent=item.name;
    label.append(input,span);options.append(label);
   });
-  audioStatus.textContent='Loading recording…';
-  player.src=track.file;player.load();drawWave();
-  const token=++loadId;loadWave(track.file,token);
+  audioStatus.textContent='Audio is not loaded. Select Load & Play to begin.';
  }
  function startQuiz(){quizOrder=shuffle([...quizTracks]);roundIndex=0;correctCount=0;quizRound.hidden=false;quizFinish.hidden=true;renderRound()}
- player.addEventListener('loadedmetadata',()=>{durationLabel.textContent=fmtTime(player.duration);playBtn.disabled=false;audioStatus.textContent='Ready to play';drawWave()});
- player.addEventListener('canplay',()=>{playBtn.disabled=false;audioStatus.textContent='Ready to play'});
- player.addEventListener('error',()=>{playBtn.disabled=true;audioStatus.textContent='Audio file not found. Upload the MP3 to the audio/ folder and check the filename in the HTML.'});
+ player.addEventListener('loadedmetadata',()=>{durationLabel.textContent=fmtTime(player.duration);drawWave()});
  player.addEventListener('timeupdate',()=>{currentTimeLabel.textContent=fmtTime(player.currentTime);drawWave()});
- player.addEventListener('play',()=>{playBtn.textContent='Ⅱ';playBtn.setAttribute('aria-label','Pause recording')});
- player.addEventListener('pause',()=>{playBtn.textContent='▶';playBtn.setAttribute('aria-label','Play recording')});
- player.addEventListener('ended',()=>{playBtn.textContent='↻';playBtn.setAttribute('aria-label','Replay recording')});
- playBtn.addEventListener('click',async()=>{if(player.paused){try{await player.play()}catch(e){audioStatus.textContent='Playback failed. Check that the MP3 file is available.'}}else player.pause()});
- function seek(p){if(Number.isFinite(player.duration)){player.currentTime=Math.max(0,Math.min(1,p))*player.duration;drawWave()}}
- waveArea.addEventListener('click',e=>seek((e.clientX-waveArea.getBoundingClientRect().left)/waveArea.getBoundingClientRect().width));
- waveArea.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();seek((player.currentTime/(player.duration||1))+(e.key==='ArrowRight'?.05:-.05))}});
+ player.addEventListener('play',()=>{playBtn.textContent='Ⅱ Pause';playBtn.setAttribute('aria-label','Pause recording')});
+ player.addEventListener('pause',()=>{if(objectUrl){playBtn.textContent='▶ Play';playBtn.setAttribute('aria-label','Play recording')}});
+ player.addEventListener('ended',()=>{playBtn.textContent='↻ Replay';playBtn.setAttribute('aria-label','Replay recording')});
+ player.addEventListener('error',()=>{if(objectUrl)audioStatus.textContent='Playback failed. Check audio format and browser compatibility.'});
+ playBtn.addEventListener('click',async()=>{
+  if(!objectUrl){await loadAndPlay();return;}
+  if(player.paused){try{await player.play()}catch(e){audioStatus.textContent='Press Play again or check browser audio permissions.';}}
+  else player.pause();
+ });
+ function seek(p){if(objectUrl&&Number.isFinite(player.duration)&&player.duration>0){player.currentTime=Math.max(0,Math.min(1,p))*player.duration;drawWave()}}
+ waveArea.addEventListener('click',e=>{if(wavePeaks)seek((e.clientX-waveArea.getBoundingClientRect().left)/waveArea.getBoundingClientRect().width)});
+ waveArea.addEventListener('keydown',e=>{if(wavePeaks&&(e.key==='ArrowRight'||e.key==='ArrowLeft')){e.preventDefault();seek((player.currentTime/(player.duration||1))+(e.key==='ArrowRight'?.05:-.05))}});
  if(window.ResizeObserver)new ResizeObserver(drawWave).observe(canvas);else window.addEventListener('resize',drawWave);
  checkBtn.addEventListener('click',()=>{
   if(submitted)return;const chosen=options.querySelector('input:checked');if(!chosen)return;
